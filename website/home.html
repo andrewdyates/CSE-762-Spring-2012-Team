@@ -1,0 +1,55 @@
+
+{% load staticfiles %}
+
+<!doctype html>
+<html>
+<head>
+  <title>MINE</title>
+  <link rel="stylesheet" href= "{{ STATIC_URL }}style.css" type="text/css" media="all" />
+  <link href="{{ STATIC_URL }}template.css" type="text/css" rel="stylesheet">
+</head>
+<body>
+
+<div>
+
+<div class="pos_fixed" id ="Head">
+	<div id="HeadTopLeft"></div>
+	<a href="" id="Logo"></a>
+</div>
+  <aside>
+    <img src="{{ STATIC_URL }}images/mine-truck.png"  />
+    <ul>
+      <li><a>Home</a></li>
+      <li><a>About Us</a></li>
+      <li><a>Add Study</a></li>
+      <li><a>Processed Studies</a></li>
+      <li><a>Queued Studies</a></li>
+    </ul>
+    <form id="search">
+      <input type="text" placeholder="Search MINE" />
+    </form>
+  </aside>
+
+  
+
+ 
+  <div id="content">
+    <form id = "search" action= "." method="post"> {% csrf_token %}
+{{ form.as_p }}
+<input type="submit" value="Submit" />
+</form>
+
+  </div>
+</div>
+<footer>
+  &copy;  MINE: Medical Informatics Network Excavator. Ohio State University, 2012.
+</footer>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script>
+</script>
+
+
+
+</body>
+
+</html>

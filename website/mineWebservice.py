@@ -17,7 +17,7 @@ db = connection.MINE
 
 def postRequest(studyid, email, processed = False, queued = False):
         if not alreadyRequested(studyid):
-                request = {"gse": studyid, "email": email, "datetime": datetime.now(), "processed": False, "queued": False}
+                request = {"gse": studyid, "email": email, "datetime": datetime.now(), "processed": False, "queued":False}
                 db.request.insert(request)
 
 def alreadyRequested(studyid):
@@ -39,7 +39,7 @@ def requestQueued(studyid):
                 return False
 
 def markRequestProcessed(studyid):
-        db.request.update({"gse":studyid,}, {"$set": {"processed":True}})
+        db.request.update({"gse":studyid,}, {"$set": {"processed":True,"queued":False}})
         email = db.request.find({"gse":studyid}).distinct("email")
         sendEmail(email, studyid)
 
@@ -48,6 +48,12 @@ def markRequestQueued(studyid):
 
 def getStudyList():
         return db.request.find().distinct("gse")
+
+def getQueuedStudyList():
+	return db.request.find({"queued":True}).distinct("gse")
+
+def getProcessedStudyList():
+	return db.request.find({"proccessed":True}).distinct("gse")
 
 def isValidNumber(studyid):
     ftp = FTP('ftp.ncbi.nih.gov')
@@ -88,26 +94,18 @@ def removeByNumber(studyid):
 def removeByEmail(email):
         db.request.remove({"email":email})
 
-def uploadLine(studyid, varname, floats, no): 
-        line = {"id": varname, "data": floats, "no": no}
+def uploadLine(studyid, varname, floats): 
+        line = {"id": varname, "data": floats}
         db[studyid].insert(line)
 
-def NumberExists(studyid, no):
-        if db[studyid].find({"no":no}).count() > 0:
-                return True
-        else:
-                return False
 
-def RetrieveData(studyid, no):
-        return map(float, db[studyid].find({"no":no}).distinct("data"))
-
-def RetrieveVariable(studyid, no):
-        return db[studyid].find({"no":no}).distinct("id")       
+def RetrieveData(studyid, id):
+        return map(float, db[studyid].find({"id":id}).distinct("data"))
 
 def uploadStudy(studyid):
 
         #logging setup
-        logging.basicConfig(filename='DEBUG.log',level=logging.INFO)
+        logging.basicConfig(filename='Upload.log',level=logging.INFO)
 
         #path for study files
         path = 'OUT/'
@@ -130,8 +128,7 @@ def uploadStudy(studyid):
                                                 try:
                                                         #insert lines
                                                         cells = line.split("\t")
-                                                        no = count -3
-                                                        uploadLine(studyid, cells[0], cells[1:], no)
+                                                        uploadLine(studyid, cells[0], cells[1:])
 
                                                 except:
                                                         logging.error("line " + count + " could not be read")
@@ -140,16 +137,100 @@ def uploadStudy(studyid):
                                 logging.info("closing " + file)
                                 f.close()
 
-                                #delete file from system
-                                logging.info("removing " + file)
-                                os.remove(path + file)
+				#mark request queued
+				markRequestQueued(studyid)
                         except:
                                 logging.error("Could not open " + file)
 
                                 
 
+def uploadProcessedData(studyid, var1, var2, mic, pcc):
+        data = {"var1": var1,"var2":var2, "mic": mic, "pcc": pcc}
+        db[studyid].insert(data)
 
-                                                              
+def uploadProcessedStudy(studyid, path, varfile, micfile, pccfile):
+        logging.basicConfig(filename='DEBUG.log',level=logging.INFO)
 
+        logging.info("opening " + varfile)
+        try:
+                vars = open(path+varfile)
+		vars.close()
+        except:
+                logging.error("could not open " + varfile)
+        
+        logging.info("opening " + micfile)
+        try:        
+                mic = open(path+micfile)
+		mic.close()
+        except:
+                logging.error("could not open " + micfile)
+                
+        logging.info("opening " + pccfile)
+        try:
+                pcc = open(path+pccfile)
+		pcc.close()
+        except:
+                logging.error("could not open " + pccfile)
+                
+        count = 0
 
+	vars = open(path + varfile)
+	mic = open(path + micfile)
+	pcc = open(path + pccfile)
+        for line in vars:
+                count += 1
+		variables = []
+		micvalue = ""
+		pccvalue = ""
 
+                try:
+                        variables = line.split(',')
+			variables[1] = variables[1].rstrip()
+                except:
+                        logging.error("could not read line " + count + " from " + varfile)
+                try:
+                        micvalue = mic.readline()
+			micvalue = micvalue.rstrip()
+                except:
+                        logging.error("could not read line " + count + " from " + micfile)
+                try:
+                        pccvalue = pcc.readline()
+			pccvalue = pccvalue.rstrip()
+                except:
+                        logging.error("could not read line " + count + " from " + micfile)
+
+                uploadProcessedData(studyid+"P", variables[0], variables[1], micvalue, pccvalue)
+
+        logging.info("done uploading lines")
+
+        logging.info("closing files")
+
+        vars.close()
+        mic.close()
+        pcc.close()
+ 
+#return pcc value for two variables
+def getPccData(studyid, var1, var2):
+
+        x = db[studyid+"P"].find({"var1":var1, "var2":var2}).distinct("pcc")
+	y = db[studyid+"P"].find({"var2":var1, "var1":var2}).distinct("pcc")
+        if x.count > 0:
+		return x
+	else:
+		return y
+
+#return mic value for two variables
+def getMicData(studyid, var1, var2):
+
+        x = db[studyid+"P"].find({"var1":var1, "var2":var2}).distinct("mic")
+        y = db[studyid+"P"].find({"var2":var1, "var1":var2}).distinct("mic")
+        if x.count > 0:
+                return x
+        else:
+                return y
+
+def getCorrespondingVars(studyid, var):
+	
+	x = db[studyid+"P"].find({"var1":var}).distinct("var2") 
+	y = db[studyid+"P"].find({"var2":var}).distinct("var1")
+	return x+y

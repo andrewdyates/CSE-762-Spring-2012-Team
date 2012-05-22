@@ -1,0 +1,55 @@
+
+{% load staticfiles %}
+
+<!doctype html>
+<html>
+<head>
+  <title>MINE</title>
+  <link rel="stylesheet" href= "{{ STATIC_URL }}style.css" type="text/css" media="all" />
+  <link href="{{ STATIC_URL }}template.css" type="text/css" rel="stylesheet">
+</head>
+<body>
+
+<div>
+
+<div class="pos_fixed" id ="Head">
+	<div id="HeadTopLeft"></div>
+	<a href="" id="Logo"></a>
+</div>
+  <aside>
+    <img src="{{ STATIC_URL }}images/mine-truck.png"  />
+    <ul>
+      <li><a href = 'http://yates.webfactional.com/studies' >Home</a></li>
+      <li><a href = 'http://yates.webfactional.com/about' >About Us</a></li>
+      <li><a href = 'http://yates.webfactional.com/list' >Requested Studies</a></li>
+      <li><a href = 'http://yates.webfactional.com/plist' >Processed Studies</a></li>
+      <li><a href = 'http://yates.webfactional.com/qlist' >Queued Studies</a></li>
+    </ul>
+    <form id="search">
+      <input type="text" placeholder="Search MINE" />
+    </form>
+  </aside>
+
+  
+
+ 
+  <div id="content">
+    <ul id="studies">
+	{% for study in queuedlist %}
+        <li class="processed icon"> <a href = '/studies/{{study}}'> Study ID  {{study}} </a> </li>
+    {% endfor %}
+    </ul>
+  </div>
+</div>
+<footer>
+  &copy;  MINE: Medical Informatics Network Excavator. Ohio State University, 2012.
+</footer>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script>
+</script>
+
+
+
+</body>
+
+</html>
